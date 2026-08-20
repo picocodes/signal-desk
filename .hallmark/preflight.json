@@ -1,0 +1,8 @@
+{
+  "date": "2026-08-20",
+  "framework": "empty project; introduced React, Vite, Express",
+  "font": "system Segoe UI Variable with Aptos fallback",
+  "palette": "Cobalt OKLCH tokens",
+  "motion": "motion-cut",
+  "spacing": "4pt semantic scale"
+}
