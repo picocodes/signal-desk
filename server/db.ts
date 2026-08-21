@@ -36,6 +36,9 @@ create table if not exists notifications (id uuid primary key, user_id uuid refe
 create table if not exists app_settings (key text primary key, value jsonb not null, secret boolean not null default false, updated_by uuid references users(id), updated_at timestamptz not null default now());
 create table if not exists audit_events (id uuid primary key, actor_id uuid references users(id), organization_id uuid references organizations(id) on delete set null, action text not null, entity_type text, entity_id text, metadata jsonb not null default '{}', created_at timestamptz not null default now());
 create table if not exists stripe_events (id text primary key, type text not null, received_at timestamptz not null default now());
+`], ["002_plan_enforcement", `
+alter table projects add column if not exists disabled_reason text;
+create index if not exists projects_org_active_idx on projects(organization_id,active,created_at);
 `]];
 
 export async function migrate() {

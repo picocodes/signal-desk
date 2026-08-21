@@ -1,5 +1,5 @@
 export type User={id:string;email:string;name:string;platformRole:"super_admin"|"moderator"|"customer";mustChangePassword:boolean};
 export type Organization={id:string;name:string;slug:string;subscription_status:string;role:"owner"|"admin"|"editor"|"viewer";plan:string;project_limit:number;post_limit:number};
-export type Project={id:string;organization_id:string;organization_name:string;name:string;canonical_url:string;audience:string;offer:string;tone:string;timezone:string;locale:string;publish_mode:"draft"|"publish";notify_on_publish:boolean;notification_emails:string[];embedding_status:string;connector_last_seen_at?:string;organization_role:string;post_limit:number};
+export type Project={id:string;organization_id:string;organization_name:string;name:string;canonical_url:string;audience:string;offer:string;tone:string;timezone:string;locale:string;publish_mode:"draft"|"publish";notify_on_publish:boolean;notification_emails:string[];embedding_status:string;connector_last_seen_at?:string;organization_role:string;post_limit:number;active:boolean;disabled_reason?:string};
 export type CalendarItem={id:string;title:string;keyword:string;intent:string;rationale:string;priority:number;scheduled_for:string;status:"scheduled"|"generating"|"drafted"|"published"|"failed"|"skipped";last_error?:string};
 export type Me={user:User;organizations:Organization[]};
