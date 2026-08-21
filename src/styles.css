@@ -42,6 +42,7 @@ a { color: inherit; text-decoration: none; }
 .org-card dd { margin: 0; font-weight: 700; }
 .panel { max-width: 80rem; padding: var(--space-xl); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-md); background: var(--color-paper); }
 .form-grid, .settings-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-lg); margin-bottom: var(--space-2xl); }
+.form-grid h2 { grid-column: 1/-1; }
 .settings-grid h2, .settings-grid .button, .settings-grid .test-actions { grid-column: 1/-1; }
 .project-list { max-width: 80rem; border-top: var(--rule-hair) solid var(--color-rule); }
 .project-row { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: var(--space-xl); align-items: center; padding: var(--space-lg) 0; border: 0; border-bottom: var(--rule-hair) solid var(--color-rule); background: transparent; color: inherit; text-align: left; cursor: pointer; }
@@ -79,6 +80,7 @@ a { color: inherit; text-decoration: none; }
  .workbench { margin: 4rem 0; padding: var(--space-xl) var(--space-md); }
  .page-head { align-items: start; flex-direction: column; }
  .org-grid, .plan-grid, .form-grid, .settings-grid, .admin-columns { grid-template-columns: minmax(0,1fr); }
+ .form-grid h2 { grid-column: auto; }
  .settings-grid h2, .settings-grid .button, .settings-grid .test-actions { grid-column: auto; }
  .instrument { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .instrument div { border-bottom: var(--rule-hair) solid var(--color-rule); }
