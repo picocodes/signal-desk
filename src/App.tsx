@@ -1,66 +1,60 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect,useMemo,useState } from "react";
 import { api } from "./api";
-import type { Topic, Workspace } from "./types";
+import type { CalendarItem,Me,Project } from "./types";
 
-const stages = ["opportunity", "brief", "draft", "scheduled", "published"] as const;
+const go=(path:string)=>{history.pushState({}, "",path);dispatchEvent(new PopStateEvent("popstate"))};
+function Brand(){return <button className="brand brand-button" onClick={()=>go("/dashboard")}>SignalDesk<span>β</span></button>}
+function Notice({value}:{value:string}){return value?<p className="notice" role="status">{value}</p>:null}
 
-function StatusMark({ status }: { status: Topic["status"] }) {
-  return <span className={`status status--${status}`}><i />{status}</span>;
+function Auth({mode}:{mode:"login"|"register"|"forgot"|"reset"}){
+ const [form,setForm]=useState({name:"",organizationName:"",email:"",password:""}),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);const token=new URLSearchParams(location.search).get("token")||"";
+ const submit=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setMessage("");try{if(mode==="login"){await api.login(form);location.href="/dashboard"}else if(mode==="register"){const r=await api.register(form);setMessage(r.message+(r.developmentToken?` Development token: ${r.developmentToken}`:""))}else if(mode==="forgot")setMessage((await api.forgot(form.email)).message);else{await api.reset(token,form.password);setMessage("Password changed. You can sign in now.")}}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}};
+ const magic=async()=>{setBusy(true);try{setMessage((await api.magic(form.email)).message)}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}};
+ return <main className="auth-page"><div className="auth-mark"><Brand/><p>Search growth, with a paper trail.</p></div><section className="auth-card"><p className="utility">{mode==="register"?"Start a workspace":"Welcome back"}</p><h1>{mode==="login"?"Open your publishing desk.":mode==="register"?"Build your first search calendar.":mode==="forgot"?"Reset your password.":"Choose a new password."}</h1><form onSubmit={submit}>
+ {mode==="register"&&<><label>Your name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Organization<input required value={form.organizationName} onChange={e=>setForm({...form,organizationName:e.target.value})}/></label></>}
+ {mode!=="reset"&&<label>Email<input required type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>}
+ {!["forgot"].includes(mode)&&<label>Password<input required type="password" minLength={10} value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></label>}
+ <button className="button" disabled={busy}>{busy?"Working…":mode==="login"?"Sign in":mode==="register"?"Create workspace":mode==="forgot"?"Send reset link":"Save new password"}</button>
+ </form>{mode==="login"&&<button className="button button-quiet" disabled={!form.email||busy} onClick={magic}>Email me a sign-in link</button>}<Notice value={message}/><div className="auth-links">{mode==="login"?<><button onClick={()=>go("/register")}>Create account</button><button onClick={()=>go("/forgot-password")}>Forgot password?</button></>:<button onClick={()=>go("/login")}>Back to sign in</button>}</div></section></main>
 }
 
-function Onboarding({ current, onSaved }: { current: Workspace; onSaved: (value: Workspace) => void }) {
-  const [form, setForm] = useState({ siteName: current.siteName, siteUrl: current.siteUrl, audience: current.audience, offer: current.offer, tone: current.tone });
-  const [state, setState] = useState<"idle" | "loading" | "error" | "success">("idle");
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault(); setState("loading");
-    try { onSaved(await api.saveWorkspace(form)); setState("success"); } catch { setState("error"); }
-  };
-  return <section className="setup-panel" aria-labelledby="setup-heading">
-    <div><p className="utility">Business context</p><h1 id="setup-heading">Give the engine something true to work from.</h1><p>These details ground every topic, claim, and call to action. You can revise them later.</p></div>
-    <form onSubmit={save} data-state={state}>
-      <label>Site name<input required value={form.siteName} onChange={e => setForm({ ...form, siteName: e.target.value })} placeholder="Acme Studio" /></label>
-      <label>Website URL<input required type="url" value={form.siteUrl} onChange={e => setForm({ ...form, siteUrl: e.target.value })} placeholder="https://example.com" /></label>
-      <label>Who buys from you?<textarea required value={form.audience} onChange={e => setForm({ ...form, audience: e.target.value })} placeholder="Operations leaders at 20–100 person service firms" /></label>
-      <label>What do you sell?<textarea required value={form.offer} onChange={e => setForm({ ...form, offer: e.target.value })} placeholder="A managed client onboarding platform" /></label>
-      <label>Writing voice<input required value={form.tone} onChange={e => setForm({ ...form, tone: e.target.value })} placeholder="Direct, experienced, never breathless" /></label>
-      <button className="button" disabled={state === "loading"}>{state === "loading" ? "Saving context…" : state === "success" ? "Context saved ✓" : "Save business context"}</button>
-      <p className="form-note" role="status">{state === "error" ? "The context could not be saved. Check the connection and try again." : "No invented metrics. No claims outside this source of truth."}</p>
-    </form>
-  </section>;
+function Shell({me,children,active,orgId}:{me:Me;children:React.ReactNode;active:string;orgId?:string}){
+ const canAdmin=["super_admin","moderator"].includes(me.user.platformRole);return <div className="app-shell"><header className="topbar"><Brand/><div className="account-chip"><span>{me.user.name}</span><small>{me.user.email}</small></div></header><aside className="rail"><nav><button className={active==="dashboard"?"active":""} onClick={()=>go("/dashboard")}>Overview</button>{orgId&&<><button className={active==="projects"?"active":""} onClick={()=>go(`/projects?organization=${orgId}`)}>Projects</button><button className={active==="billing"?"active":""} onClick={()=>go(`/billing?organization=${orgId}`)}>Billing</button></>}<button className={active==="settings"?"active":""} onClick={()=>go("/settings")}>Your settings</button>{canAdmin&&<button className={active==="admin"?"active":""} onClick={()=>go("/admin")}>Platform admin</button>}</nav><button className="signout" onClick={async()=>{await api.logout();location.href="/login"}}>Sign out</button></aside><main className="workbench">{children}</main></div>
 }
 
-function TopicRow({ topic, onAdvance }: { topic: Topic; onAdvance: (id: string) => void }) {
-  const next = stages[Math.min(stages.indexOf(topic.status) + 1, stages.length - 1)];
-  return <article className="topic-row">
-    <div className="topic-main"><StatusMark status={topic.status} /><h3>{topic.title}</h3><p>{topic.keyword} · {topic.intent} intent</p></div>
-    <dl><div><dt>Priority</dt><dd>{topic.score}/100</dd></div><div><dt>Sources</dt><dd>{topic.evidence}</dd></div><div><dt>Target</dt><dd>{topic.due}</dd></div></dl>
-    <button className="row-action" disabled={topic.status === "published"} onClick={() => onAdvance(topic.id)}>{topic.status === "published" ? "Published" : `Move to ${next}`}</button>
-  </article>;
+function Dashboard({me}:{me:Me}){return <Shell me={me} active="dashboard"><header className="page-head"><div><p className="utility">Organization desk</p><h1>What ships next?</h1></div><p>Each calendar slot becomes an article only when its publication day arrives.</p></header><div className="org-grid">{me.organizations.map(org=><article className="org-card" key={org.id}><div><span className="status-dot"/><small>{org.plan} · {org.subscription_status}</small></div><h2>{org.name}</h2><dl><div><dt>Projects</dt><dd>up to {org.project_limit}</dd></div><div><dt>Monthly posts</dt><dd>{org.post_limit}</dd></div><div><dt>Your role</dt><dd>{org.role}</dd></div></dl><button className="text-action" onClick={()=>go(`/projects?organization=${org.id}`)}>Open organization →</button></article>)}</div></Shell>}
+
+function Projects({me}:{me:Me}){
+ const orgId=new URLSearchParams(location.search).get("organization")||me.organizations[0]?.id,[data,setData]=useState<any>(),[show,setShow]=useState(false),[message,setMessage]=useState("");const [form,setForm]=useState({organizationId:orgId,name:"",canonicalUrl:"",audience:"",offer:"",tone:"Clear, practical, evidence-led",timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,locale:"en",publishMode:"draft",notifyOnPublish:true});
+ const load=()=>api.organization(orgId).then(setData).catch(e=>setMessage(e.message));useEffect(()=>{void load()},[orgId]);
+ const create=async(e:React.FormEvent)=>{e.preventDefault();try{const r=await api.createProject(form);go(`/projects/${r.id}`)}catch(e){setMessage((e as Error).message)}};
+ return <Shell me={me} orgId={orgId} active="projects"><header className="page-head"><div><p className="utility">{data?.organization?.plan_name||"Organization"}</p><h1>{data?.organization?.name||"Projects"}</h1></div><button className="button" onClick={()=>setShow(!show)}>{show?"Close form":"Add project"}</button></header><Notice value={message}/>{show&&<form className="panel form-grid" onSubmit={create}><label>Site name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Canonical URL<input required type="url" placeholder="https://example.com" value={form.canonicalUrl} onChange={e=>setForm({...form,canonicalUrl:e.target.value})}/></label><label>Audience<textarea required value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})}/></label><label>Offer<textarea required value={form.offer} onChange={e=>setForm({...form,offer:e.target.value})}/></label><label>Writing voice<input required value={form.tone} onChange={e=>setForm({...form,tone:e.target.value})}/></label><button className="button">Create project</button></form>}<div className="project-list">{data?.projects?.map((p:any)=><button className="project-row" key={p.id} onClick={()=>go(`/projects/${p.id}`)}><span><strong>{p.name}</strong><small>{p.canonical_url}</small></span><span className="project-state">{p.connector_last_seen_at?"WordPress connected":"Sitemap mode"} · {p.publish_mode}</span><b>→</b></button>)}{data&&data.projects.length===0&&<div className="empty"><h2>No sites connected</h2><p>Add a project to begin mapping its existing content.</p></div>}</div></Shell>
 }
 
-export function App() {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [error, setError] = useState("");
-  const [planning, setPlanning] = useState(false);
-  useEffect(() => { api.workspace().then(setWorkspace).catch(e => setError(e.message)); }, []);
-  const counts = useMemo(() => Object.fromEntries(stages.map(stage => [stage, workspace?.topics.filter(t => t.status === stage).length || 0])), [workspace]);
-  const plan = async () => { setPlanning(true); try { setWorkspace(await api.generatePlan()); } catch (e) { setError((e as Error).message); } finally { setPlanning(false); } };
-  const advance = async (id: string) => { try { setWorkspace(await api.advanceTopic(id)); } catch (e) { setError((e as Error).message); } };
-  if (error) return <main className="fatal"><p className="utility">Connection problem</p><h1>The workspace did not load.</h1><p>{error}</p><button className="button" onClick={() => location.reload()}>Try again</button></main>;
-  if (!workspace) return <main className="loading" aria-live="polite"><span /><p>Opening the workbench…</p></main>;
-  if (!workspace.siteUrl) return <main className="onboarding"><a className="brand" href="/">SignalDesk<span>β</span></a><Onboarding current={workspace} onSaved={setWorkspace} /></main>;
-  return <div className="shell">
-    <header className="topbar"><a className="brand" href="/">SignalDesk<span>β</span></a><button className="command" aria-label="Search workspace"><kbd>⌘</kbd><span>Search topics, pages, evidence</span><kbd>K</kbd></button><div className="site-switch"><i />{workspace.siteName}</div></header>
-    <aside className="rail"><nav aria-label="Workspace"><a className="active" href="#pipeline">Pipeline</a><a href="#calendar">Calendar</a><a href="#evidence">Evidence</a><a href="#site">Site memory</a></nav><div className="rail-foot"><span>Provider</span><strong>Demo mode</strong></div></aside>
-    <main className="workbench">
-      <section className="work-head"><div><p className="utility">Search workspace</p><h1>Make the next useful page obvious.</h1></div><p>SignalDesk turns your business context into an accountable publishing queue—then watches what searchers actually respond to.</p></section>
-      <section className="instrument" aria-label="Pipeline summary">{stages.map(stage => <div key={stage}><strong>{counts[stage]}</strong><span>{stage}</span></div>)}</section>
-      <section className="pipeline" id="pipeline">
-        <div className="section-head"><div><h2>Content pipeline</h2><p>Every page moves with evidence attached.</p></div><button className="button" onClick={plan} disabled={planning}>{planning ? "Finding opportunities…" : workspace.topics.length ? "Refresh plan" : "Build first plan"}</button></div>
-        <div className="topic-list">{workspace.topics.length ? workspace.topics.map(topic => <TopicRow key={topic.id} topic={topic} onAdvance={advance} />) : <div className="empty"><span>↳</span><h3>No topics queued yet</h3><p>Build a first plan from your saved audience, offer, and site context.</p><button className="text-action" onClick={plan}>Build the plan →</button></div>}</div>
-      </section>
-      <section className="evidence-panel" id="evidence"><div><p className="utility">Quality contract</p><h2>Research before prose.</h2></div><ul><li><span>01</span> Claims resolve to a saved source.</li><li><span>02</span> Search intent chooses the page shape.</li><li><span>03</span> WordPress receives native editable blocks.</li></ul></section>
-      <footer className="footer"><p>Publish less guesswork.</p><div><span className="brand">SignalDesk<span>β</span></span><span>Private preview · 2026</span></div></footer>
-    </main>
-  </div>;
+function ProjectView({me,id}:{me:Me;id:string}){
+ const [data,setData]=useState<{project:Project;items:CalendarItem[]}|null>(null),[message,setMessage]=useState(""),[pair,setPair]=useState("");const load=()=>api.project(id).then(setData).catch(e=>setMessage(e.message));useEffect(()=>{void load()},[id]);const p=data?.project;
+ const generate=async()=>{try{const month=new Date().toISOString().slice(0,7),r=await api.calendar(id,month,Math.min(10,p?.post_limit||10));setMessage(`${r.created} calendar items created. Scores are AI estimates, not search-volume data.`);load()}catch(e){setMessage((e as Error).message)}};
+ const pairing=async()=>{try{const r=await api.pairToken(id);setPair(r.token);setMessage("Paste this token into the SignalDesk Connector settings in WordPress.")}catch(e){setMessage((e as Error).message)}};
+ const counts=useMemo(()=>Object.fromEntries(["scheduled","generating","drafted","published","failed"].map(s=>[s,data?.items.filter(i=>i.status===s).length||0])),[data]);
+ if(!p)return <Shell me={me} active="projects"><Notice value={message||"Loading project…"}/></Shell>;
+ return <Shell me={me} orgId={p.organization_id} active="projects"><header className="page-head"><div><p className="utility">{p.organization_name}</p><h1>{p.name}</h1><a href={p.canonical_url} target="_blank">{p.canonical_url}</a></div><button className="button" onClick={generate}>Build this month</button></header><Notice value={message}/><section className="instrument">{Object.entries(counts).map(([k,v])=><div key={k}><strong>{v}</strong><span>{k}</span></div>)}</section><section className="connector-strip"><div><small>WordPress delivery</small><strong>{p.connector_last_seen_at?"Connected":"Not paired"}</strong></div><button className="button button-quiet" onClick={pairing}>Generate pairing token</button>{pair&&<code>{pair}</code>}</section><section className="calendar-board"><div className="section-head"><div><h2>Publication calendar</h2><p>Full articles are generated only when each slot becomes due.</p></div></div>{data.items.map(item=><article className="calendar-row" key={item.id}><time>{new Date(item.scheduled_for).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</time><div><span className={`status status--${item.status}`}>{item.status}</span><h3>{item.title}</h3><p>{item.keyword} · {item.intent} intent · priority {item.priority}/100</p>{item.last_error&&<small className="error">{item.last_error}</small>}</div>{item.status==="failed"?<button onClick={async()=>{await api.retry(item.id);load()}}>Retry</button>:<button onClick={async()=>{await api.updateItem(item.id,{status:"skipped"});load()}}>Skip</button>}</article>)}{!data.items.length&&<div className="empty"><h2>The calendar is clear</h2><p>Build the month to reserve topics against your plan allowance.</p></div>}</section></Shell>
+}
+
+function Billing({me}:{me:Me}){const orgId=new URLSearchParams(location.search).get("organization")||me.organizations[0]?.id,org=me.organizations.find(x=>x.id===orgId),[message,setMessage]=useState("");const checkout=async(plan:string)=>{try{const r=await api.checkout(orgId,plan);location.href=r.url}catch(e){setMessage((e as Error).message)}};return <Shell me={me} orgId={orgId} active="billing"><header className="page-head"><div><p className="utility">Billing</p><h1>{org?.name}</h1></div><span className="plan-stamp">{org?.plan} · {org?.subscription_status}</span></header><Notice value={message}/><div className="plan-grid">{[["starter",1,10],["growth",5,50],["agency",25,250]].map(([name,projects,posts])=><article className="plan-card" key={String(name)}><small>{String(name)}</small><h2>{posts} posts</h2><p>{projects} connected {Number(projects)===1?"site":"sites"} per month.</p><button className="button" onClick={()=>checkout(String(name))}>Choose {String(name)}</button></article>)}</div><button className="text-action" onClick={async()=>{try{const r=await api.billingPortal(orgId);location.href=r.url}catch(e){setMessage((e as Error).message)}}}>Manage invoices and payment method →</button></Shell>}
+
+function Admin({me}:{me:Me}){const [data,setData]=useState<any>(),[message,setMessage]=useState(""),[form,setForm]=useState({cf_account_id:"",cf_gateway_id:"default",cf_api_token:"",generation_model:"openai/gpt-5.6-luna",embedding_model:"@cf/qwen/qwen3-embedding-0.6b",smtp_host:"",smtp_port:"587",smtp_user:"",smtp_password:"",smtp_from:"",stripe_secret_key:"",stripe_webhook_secret:""});useEffect(()=>{api.admin().then(setData).catch(e=>setMessage(e.message))},[]);const save=async(e:React.FormEvent)=>{e.preventDefault();const secretKeys=["cf_api_token","smtp_password","stripe_secret_key","stripe_webhook_secret"];const entries=Object.entries(form).filter(([,value])=>value!=="").map(([key,value])=>({key,value,secret:secretKeys.includes(key)}));try{await api.saveSettings(entries);setMessage("Platform settings saved. Secret values remain hidden.")}catch(e){setMessage((e as Error).message)}};return <Shell me={me} active="admin"><header className="page-head"><div><p className="utility">Platform control</p><h1>Operations without exposed secrets.</h1></div></header><Notice value={message}/>{me.user.platformRole==="super_admin"&&<form className="panel settings-grid" onSubmit={save}><h2>AI gateway</h2>{Object.entries(form).map(([key,value])=><label key={key}>{key.replaceAll("_"," ")}<input type={key.includes("token")||key.includes("secret")||key.includes("password")?"password":"text"} value={value} onChange={e=>setForm({...form,[key]:e.target.value})}/></label>)}<button className="button">Save platform settings</button><div className="test-actions">{["ai","smtp","stripe"].map(s=><button type="button" key={s} onClick={async()=>{try{await api.testService(s);setMessage(`${s.toUpperCase()} connection works.`)}catch(e){setMessage((e as Error).message)}}}>Test {s}</button>)}</div></form>}<div className="admin-columns"><section><h2>Organizations</h2>{data?.organizations?.map((o:any)=><p key={o.id}><strong>{o.name}</strong><span>{o.plan} · {o.subscription_status}</span></p>)}</section><section><h2>Recent jobs</h2>{data?.jobs?.map((j:any)=><p key={j.id}><strong>{j.kind}</strong><span>{j.status} · attempt {j.attempts}</span></p>)}</section></div></Shell>}
+
+function Settings({me}:{me:Me}){return <Shell me={me} active="settings"><header className="page-head"><div><p className="utility">Your settings</p><h1>{me.user.name}</h1><p>{me.user.email}</p></div></header><div className="panel"><h2>Security</h2><p>Sessions, password changes, email reverification, notification defaults, and account export are available through the authenticated API foundation.</p>{me.user.mustChangePassword&&<Notice value="Change the bootstrap password before inviting customers."/ >}</div></Shell>}
+
+export function App(){
+ const [path,setPath]=useState(location.pathname),[me,setMe]=useState<Me|null>(null),[loading,setLoading]=useState(true);useEffect(()=>{const pop=()=>setPath(location.pathname);addEventListener("popstate",pop);return()=>removeEventListener("popstate",pop)},[]);useEffect(()=>{api.me().then(setMe).catch(()=>setMe(null)).finally(()=>setLoading(false))},[path]);
+ useEffect(()=>{if(["/verify-email","/magic-login"].includes(path)){const token=new URLSearchParams(location.search).get("token");if(token)api.consume(token,path==="/verify-email"?"verify":"magic").then(()=>location.href="/dashboard")}},[path]);
+ if(loading)return <main className="loading"><span/><p>Opening SignalDesk…</p></main>;
+ if(!me){if(path==="/register")return <Auth mode="register"/>;if(path==="/forgot-password")return <Auth mode="forgot"/>;if(path==="/reset-password")return <Auth mode="reset"/>;return <Auth mode="login"/>}
+ if(path.startsWith("/projects/"))return <ProjectView me={me} id={path.split("/")[2]}/>;
+ if(path==="/projects")return <Projects me={me}/>;
+ if(path==="/billing")return <Billing me={me}/>;
+ if(path==="/admin"&&["super_admin","moderator"].includes(me.user.platformRole))return <Admin me={me}/>;
+ if(path==="/settings")return <Settings me={me}/>;
+ return <Dashboard me={me}/>;
 }

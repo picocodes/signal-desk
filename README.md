@@ -1,19 +1,20 @@
 # SignalDesk
 
-SignalDesk is a WordPress-friendly search growth workspace: establish business context, build a content opportunity plan, move pages through an evidence-led pipeline, and publish through a small connector plugin.
+SignalDesk is a multi-tenant, WordPress-friendly search growth SaaS. Organizations connect sites, index existing content, reserve an AI-assisted publishing calendar, and generate each article only when it becomes due.
 
-## Current vertical slice
+## MVP capabilities
 
-- Persistent business onboarding and topic pipeline
-- Deterministic demo planning provider (clearly labelled)
-- Responsive dashboard with loading, empty, success, error and disabled states
-- PostgreSQL startup migrations and `/health` database check
-- Multi-stage Docker build and Coolify-ready Compose service
-- WordPress connector with shared-secret authentication and draft publishing
+- Password and magic-link authentication, secure sessions, tenant and platform roles
+- Organizations, plan limits, projects, invitations, Stripe checkout/portal/webhooks
+- Cloudflare AI Gateway generation and Workers AI embeddings
+- PostgreSQL + pgvector content index and database-backed worker queue
+- Monthly calendars with due-date-only generation, retries, quota reservation, and notifications
+- Revocable WordPress pairing with idempotent Gutenberg draft/live publishing
+- Encrypted super-admin settings and operational views
 
 ## Local development
 
-Node 22 and PostgreSQL are required.
+Node 22 and PostgreSQL 17 with pgvector are required.
 
 ```powershell
 Copy-Item .env.example .env
@@ -29,20 +30,20 @@ Create a Docker Compose resource from this repository and set:
 
 - `POSTGRES_PASSWORD`
 - `SESSION_SECRET` (32+ random characters)
-- `WORDPRESS_SHARED_SECRET`
+- `APP_ENCRYPTION_KEY` (32+ random characters)
 - `APP_URL`
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD` for the initial super-admin
 
-Expose the `app` service on port `3000`. PostgreSQL stays internal. The application runs idempotent schema migrations before listening and reports readiness at `/health`.
+Expose the `app` service on port `3000`. The `worker` and PostgreSQL services stay internal. Both application processes run advisory-lock-protected migrations. Health and readiness are available at `/health` and `/ready`.
 
-## Provider boundary
-
-`LLM_PROVIDER=demo` and `KEYWORD_PROVIDER=demo` are intentional. They make the first deployment testable without presenting invented search data as real. Live LLM research and keyword-data adapters are the next implementation slice.
+Cloudflare and Stripe can be configured through the super-admin UI. Without Cloudflare credentials, calendar and article generation use clearly non-production fallback content so infrastructure can still be tested; no fabricated keyword-volume metrics are presented.
 
 ## WordPress connector
 
-Zip the contents of `wordpress-connector`, install it in WordPress, and save the same shared secret under **Settings → SignalDesk**. The connector exposes:
+Zip the contents of `wordpress-connector`, install it in WordPress, generate a pairing token in the project, and paste the project endpoint and token under **Settings → SignalDesk**. The connector exposes:
 
 - `GET /wp-json/signaldesk/v1/status`
+- `GET /wp-json/signaldesk/v1/content`
 - `POST /wp-json/signaldesk/v1/drafts`
 
-Both require `X-SignalDesk-Secret`.
+All routes require `X-SignalDesk-Token`.

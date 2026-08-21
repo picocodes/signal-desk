@@ -9,19 +9,38 @@ services:
       DATABASE_SSL: "false"
       APP_URL: ${APP_URL:-http://localhost:3000}
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
-      LLM_PROVIDER: ${LLM_PROVIDER:-demo}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      KEYWORD_PROVIDER: ${KEYWORD_PROVIDER:-demo}
-      DATAFORSEO_LOGIN: ${DATAFORSEO_LOGIN:-}
-      DATAFORSEO_PASSWORD: ${DATAFORSEO_PASSWORD:-}
-      WORDPRESS_SHARED_SECRET: ${WORDPRESS_SHARED_SECRET:?set WORDPRESS_SHARED_SECRET}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-SignalDesk Admin}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_GATEWAY_ID: ${CLOUDFLARE_GATEWAY_ID:-default}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
     ports:
       - "3000"
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["node", "dist-server/server/worker.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-signaldesk}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-signaldesk}
+      DATABASE_SSL: "false"
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?set APP_ENCRYPTION_KEY}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_GATEWAY_ID: ${CLOUDFLARE_GATEWAY_ID:-default}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-signaldesk}
