@@ -1,6 +1,7 @@
 @import "../tokens.css";
 
-/* Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V4 */
+/* Hallmark · modern-minimal operational workbench · cobalt anchor · fixed rail + schedule-led content
+ * pre-emit critique: P4 H5 E4 S5 R5 V4 · contrast/mobile/tokens/honest-copy: pass */
 
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; overflow-x: clip; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); }
@@ -26,6 +27,8 @@ a { color: inherit; text-decoration: none; }
 .auth-card form { display: grid; gap: var(--space-md); }
 .auth-links { display: flex; justify-content: space-between; gap: var(--space-md); margin-top: var(--space-lg); }
 .auth-links button, .test-actions button, .calendar-row button { border: 0; background: transparent; color: var(--color-accent); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.auth-links button:active, .test-actions button:active, .calendar-row button:active, .rail nav button:active, .signout:active { color: var(--color-ink); }
+.auth-links button:disabled, .test-actions button:disabled, .calendar-row button:disabled, .rail nav button:disabled, .signout:disabled { opacity: .55; cursor: not-allowed; color: var(--color-muted); }
 .button-quiet { background: transparent; color: var(--color-accent); margin-top: var(--space-sm); }
 .notice { max-width: 80rem; padding: var(--space-md); border-left: .25rem solid var(--color-accent); background: var(--color-paper-2); overflow-wrap: anywhere; }
 .org-grid, .plan-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--space-lg); max-width: 80rem; }
@@ -85,6 +88,9 @@ a { color: inherit; text-decoration: none; }
  .connector-strip div { margin-right: 0; }
  .calendar-row { grid-template-columns: 3.5rem minmax(0,1fr); }
  .calendar-row > button { grid-column: 2; justify-self: start; }
+}
+@media (hover: hover) {
+ .auth-links button:hover, .test-actions button:hover, .calendar-row button:hover, .rail nav button:hover, .signout:hover { color: var(--color-ink); background: var(--color-paper-2); }
 }
 button, a, input, textarea { outline: 2px solid transparent; outline-offset: 2px; }
 button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible { outline-color: var(--color-focus); }
