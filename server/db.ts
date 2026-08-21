@@ -39,6 +39,11 @@ create table if not exists stripe_events (id text primary key, type text not nul
 `], ["002_plan_enforcement", `
 alter table projects add column if not exists disabled_reason text;
 create index if not exists projects_org_active_idx on projects(organization_id,active,created_at);
+`], ["003_managed_stripe_catalog", `
+alter table plans add column if not exists price_amount int not null default 0;
+alter table plans add column if not exists currency text not null default 'usd';
+alter table plans add column if not exists billing_interval text not null default 'month';
+update plans set price_amount=case slug when 'starter' then 2900 when 'growth' then 7900 when 'agency' then 19900 else price_amount end where price_amount=0;
 `]];
 
 export async function migrate() {
